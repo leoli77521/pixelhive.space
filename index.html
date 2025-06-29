@@ -1962,4 +1962,10 @@
         // 页面加载完成后的初始化
         document.addEventListener('DOMContentLoaded', function() {
             addLog('游戏爬虫工具已就绪 - 增强版', 'info');
-            addLog('新增功能: 表格视图、批量导出、选
+            addLog('新增功能: 表格视图、批量导出、选择操作', 'info');
+            
+            document.getElementById('gameSelectors').placeholder = siteConfigs.default.gameSelectors;
+        });
+    </script>
+</body>
+</html>
