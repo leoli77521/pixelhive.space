@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>游戏站点批量Iframe链接爬虫</title>
+    <title>游戏站点批量Iframe链接爬虫 - 增强版</title>
     <style>
         * {
             margin: 0;
@@ -214,6 +214,12 @@
             font-size: 18px;
         }
 
+        .btn-small {
+            padding: 8px 12px;
+            font-size: 12px;
+            border-radius: 6px;
+        }
+
         .progress-section {
             background: #f8f9ff;
             border-radius: 15px;
@@ -305,6 +311,63 @@
             word-break: break-all;
         }
 
+        /* 批量操作区域 */
+        .bulk-actions {
+            background: linear-gradient(45deg, #f8f9ff, #e1e5fe);
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 30px;
+            border: 2px solid #667eea;
+            display: none;
+        }
+
+        .bulk-actions h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.2rem;
+        }
+
+        .bulk-actions-row {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+
+        .select-all-group {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 8px;
+            border: 2px solid #e1e5fe;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .bulk-stats {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #e1e5fe;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .selected-info {
+            color: #667eea;
+            font-weight: 600;
+        }
+
         .results-section {
             background: #f8f9ff;
             border-radius: 15px;
@@ -335,6 +398,35 @@
             font-size: 14px;
         }
 
+        .view-toggle {
+            display: flex;
+            gap: 5px;
+            background: white;
+            border-radius: 8px;
+            padding: 4px;
+            border: 2px solid #e1e5fe;
+        }
+
+        .view-btn {
+            padding: 8px 16px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .view-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        /* 卡片视图 */
+        .card-view {
+            display: block;
+        }
+
         .game-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
@@ -348,6 +440,7 @@
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
             border-left: 4px solid #667eea;
             transition: all 0.3s ease;
+            position: relative;
         }
 
         .game-card:hover {
@@ -355,11 +448,26 @@
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
         }
 
+        .game-card.selected {
+            border-left-color: #4caf50;
+            background: #f8fff8;
+        }
+
+        .card-checkbox {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
         .game-header {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             margin-bottom: 15px;
+            padding-right: 30px;
         }
 
         .game-title {
@@ -437,10 +545,126 @@
             flex-wrap: wrap;
         }
 
-        .btn-small {
-            padding: 8px 12px;
+        /* 表格视图 */
+        .table-view {
+            display: none;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+        }
+
+        .table-container {
+            overflow-x: auto;
+            max-height: 700px;
+            overflow-y: auto;
+        }
+
+        .games-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        .games-table th,
+        .games-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e1e5fe;
+        }
+
+        .games-table th {
+            background: #f8f9ff;
+            font-weight: 600;
+            color: #333;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .games-table tr:hover {
+            background: #f8f9ff;
+        }
+
+        .games-table tr.selected-row {
+            background: #f0f8ff !important;
+            border-left: 4px solid #4caf50;
+        }
+
+        .games-table .game-title-cell {
+            font-weight: 600;
+            color: #667eea;
+            max-width: 200px;
+        }
+
+        .games-table .url-cell {
+            font-family: 'Courier New', monospace;
             font-size: 12px;
-            border-radius: 6px;
+            max-width: 300px;
+            word-break: break-all;
+            color: #2196F3;
+        }
+
+        .games-table .iframe-status {
+            text-align: center;
+        }
+
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .status-badge.supported {
+            background: #e8f5e8;
+            color: #2e7d32;
+        }
+
+        .status-badge.not-supported {
+            background: #ffebee;
+            color: #d32f2f;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .table-btn {
+            padding: 4px 8px;
+            font-size: 11px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .table-btn.copy {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .table-btn.open {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+
+        .table-btn:hover {
+            opacity: 0.8;
+            transform: translateY(-1px);
+        }
+
+        .checkbox-cell {
+            text-align: center;
+            width: 50px;
+        }
+
+        .row-checkbox {
+            cursor: pointer;
+            width: 18px;
+            height: 18px;
         }
 
         .log-section {
@@ -522,12 +746,27 @@
                 grid-template-columns: 1fr;
             }
             
-            .controls {
+            .controls, .bulk-actions-row, .results-filters {
                 flex-direction: column;
                 align-items: stretch;
             }
             
             .btn {
+                justify-content: center;
+            }
+
+            .table-container {
+                font-size: 12px;
+            }
+
+            .games-table th,
+            .games-table td {
+                padding: 8px 10px;
+            }
+
+            .view-toggle {
+                order: -1;
+                width: 100%;
                 justify-content: center;
             }
         }
@@ -537,7 +776,7 @@
     <div class="container">
         <div class="header">
             <h1>🎮 游戏站点Iframe链接批量爬虫</h1>
-            <p>专业提取游戏站点中所有支持iframe嵌入的游戏链接</p>
+            <p>专业提取游戏站点中所有支持iframe嵌入的游戏链接 - 增强版</p>
         </div>
 
         <!-- 快速开始 -->
@@ -723,11 +962,55 @@
             </div>
         </div>
 
+        <!-- 批量操作区域 -->
+        <div class="bulk-actions" id="bulkActions">
+            <h4>📋 批量操作工具</h4>
+            <div class="bulk-actions-row">
+                <div class="select-all-group">
+                    <input type="checkbox" id="selectAll" onchange="toggleSelectAll()">
+                    <label for="selectAll">全选游戏</label>
+                </div>
+                <div class="export-buttons">
+                    <button class="btn btn-secondary btn-small" onclick="exportSelectedAsExcel()">
+                        📊 导出选中Excel
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="exportSelectedAsCSV()">
+                        📄 导出选中CSV
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="exportSelectedAsJSON()">
+                        📋 导出选中JSON
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="copySelectedUrls()">
+                        🔗 复制选中链接
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="generateBatchEmbedCode()">
+                        📝 生成嵌入代码
+                    </button>
+                </div>
+            </div>
+            <div class="bulk-stats">
+                <div class="selected-info">
+                    已选择 <span id="selectedCount">0</span> 个游戏
+                </div>
+                <div class="selected-info">
+                    其中 <span id="selectedIframeCount">0</span> 个支持iframe
+                </div>
+            </div>
+        </div>
+
         <!-- 结果显示 -->
         <div class="results-section">
             <div class="results-header">
                 <h3>🎯 发现的游戏 (<span id="totalGamesCount">0</span>)</h3>
                 <div class="results-filters">
+                    <div class="view-toggle">
+                        <button class="view-btn active" onclick="switchView('card')" id="cardViewBtn">
+                            🎴 卡片视图
+                        </button>
+                        <button class="view-btn" onclick="switchView('table')" id="tableViewBtn">
+                            📊 表格视图
+                        </button>
+                    </div>
                     <select class="filter-select" id="categoryFilter" onchange="filterResults()">
                         <option value="">所有类别</option>
                         <option value="action">动作</option>
@@ -744,19 +1027,47 @@
                         <option value="webgl">WebGL</option>
                         <option value="flash">Flash</option>
                     </select>
-                    <button class="btn btn-secondary btn-small" onclick="exportResults()">
-                        📥 导出游戏列表
-                    </button>
-                    <button class="btn btn-secondary btn-small" onclick="generateEmbedCode()">
-                        🔗 生成嵌入代码
+                    <select class="filter-select" id="iframeFilter" onchange="filterResults()">
+                        <option value="">所有游戏</option>
+                        <option value="iframe">仅支持iframe</option>
+                        <option value="no-iframe">不支持iframe</option>
+                    </select>
+                    <button class="btn btn-secondary btn-small" onclick="exportAllAsExcel()">
+                        📊 导出全部Excel
                     </button>
                 </div>
             </div>
 
-            <div id="resultsContainer">
+            <!-- 卡片视图 -->
+            <div id="resultsContainer" class="card-view">
                 <p style="text-align: center; color: #666; padding: 40px;">
                     选择游戏站点并开始爬取来发现可嵌入的游戏链接
                 </p>
+            </div>
+
+            <!-- 表格视图 -->
+            <div id="tableView" class="table-view">
+                <div class="table-container">
+                    <table class="games-table" id="gamesTable">
+                        <thead>
+                            <tr>
+                                <th class="checkbox-cell">
+                                    <input type="checkbox" id="tableSelectAll" onchange="toggleSelectAll()">
+                                </th>
+                                <th>游戏名称</th>
+                                <th>页面链接</th>
+                                <th>iframe链接</th>
+                                <th>支持iframe</th>
+                                <th>类别</th>
+                                <th>技术</th>
+                                <th>来源</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tableBody">
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
 
@@ -770,6 +1081,9 @@
     <script>
         // 全局变量
         let crawlResults = [];
+        let filteredResults = [];
+        let selectedGames = new Set();
+        let currentView = 'card';
         let crawlStats = {
             pagesProcessed: 0,
             gamesFound: 0,
@@ -781,7 +1095,6 @@
         let isCrawling = false;
         let isPaused = false;
         let selectedSite = '';
-        let crawlWorker = null;
 
         // 游戏站点爬取规则配置
         const siteConfigs = {
@@ -917,7 +1230,6 @@
             addLog(`开始爬取游戏站点: ${url}`, 'info');
             
             try {
-                // 模拟爬取过程（由于CORS限制，这里只能模拟）
                 await simulateCrawlProcess(url, config);
             } catch (error) {
                 addLog(`爬取过程出错: ${error.message}`, 'error');
@@ -931,9 +1243,6 @@
         // 模拟爬取过程
         async function simulateCrawlProcess(url, config) {
             const domain = new URL(url).hostname;
-            const siteConfig = getSiteConfig(domain);
-            
-            // 模拟发现的游戏数据
             const simulatedGames = generateSimulatedGames(domain, config.maxPages);
             
             for (let i = 0; i < simulatedGames.length; i++) {
@@ -950,23 +1259,20 @@
                 crawlStats.successfulRequests++;
                 crawlStats.totalRequests++;
                 
-                // 添加到结果
                 crawlResults.push(game);
                 
-                // 更新进度
                 updateProgress((i + 1) / simulatedGames.length * 100);
                 updateStats();
                 updateCurrentTask(`处理游戏: ${game.title}`);
                 
                 addLog(`发现游戏: ${game.title} - ${game.iframe ? '支持iframe' : '仅页面链接'}`, 'success');
                 
-                // 延迟
                 await sleep(config.requestDelay || 1000);
             }
             
-            // 完成
             addLog(`爬取完成！总共发现 ${crawlResults.length} 个游戏，其中 ${crawlStats.iframesFound} 个支持iframe嵌入`, 'success');
             displayResults();
+            showBulkActions();
         }
 
         // 生成模拟游戏数据
@@ -975,7 +1281,7 @@
             const techTypes = ['html5', 'unity', 'webgl', 'flash'];
             const games = [];
             
-            const gameCount = Math.min(maxGames, Math.floor(Math.random() * 50) + 10);
+            const gameCount = Math.min(maxGames, Math.floor(Math.random() * 50) + 15);
             
             for (let i = 0; i < gameCount; i++) {
                 const gameId = Math.random().toString(36).substr(2, 9);
@@ -986,7 +1292,7 @@
                     id: gameId,
                     title: `${gameType.charAt(0).toUpperCase() + gameType.slice(1)} Game ${i + 1}`,
                     url: `https://${domain}/games/${gameId}`,
-                    iframe: Math.random() > 0.3 ? `https://${domain}/embed/${gameId}` : null,
+                    iframe: Math.random() > 0.25 ? `https://${domain}/embed/${gameId}` : null,
                     category: gameType,
                     technology: techType,
                     source: domain,
@@ -999,14 +1305,369 @@
             return games;
         }
 
-        // 获取站点配置
-        function getSiteConfig(domain) {
-            for (const [key, config] of Object.entries(siteConfigs)) {
-                if (domain.includes(key)) {
-                    return config;
-                }
+        // 切换视图
+        function switchView(viewType) {
+            currentView = viewType;
+            const cardView = document.getElementById('resultsContainer');
+            const tableView = document.getElementById('tableView');
+            const cardBtn = document.getElementById('cardViewBtn');
+            const tableBtn = document.getElementById('tableViewBtn');
+            
+            if (viewType === 'card') {
+                cardView.style.display = 'block';
+                tableView.style.display = 'none';
+                cardBtn.classList.add('active');
+                tableBtn.classList.remove('active');
+                displayCardView();
+            } else {
+                cardView.style.display = 'none';
+                tableView.style.display = 'block';
+                cardBtn.classList.remove('active');
+                tableBtn.classList.add('active');
+                renderTableView();
             }
-            return siteConfigs.default;
+        }
+
+        // 渲染表格视图
+        function renderTableView() {
+            const tableBody = document.getElementById('tableBody');
+            tableBody.innerHTML = '';
+            
+            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            
+            results.forEach((game, index) => {
+                const row = document.createElement('tr');
+                row.id = `row-${game.id}`;
+                
+                if (selectedGames.has(game.id)) {
+                    row.classList.add('selected-row');
+                }
+                
+                row.innerHTML = `
+                    <td class="checkbox-cell">
+                        <input type="checkbox" class="row-checkbox" 
+                               value="${game.id}" 
+                               ${selectedGames.has(game.id) ? 'checked' : ''}
+                               onchange="toggleGameSelection('${game.id}')">
+                    </td>
+                    <td class="game-title-cell">${game.title}</td>
+                    <td class="url-cell">
+                        <a href="${game.url}" target="_blank">${game.url}</a>
+                    </td>
+                    <td class="url-cell">
+                        ${game.iframe ? 
+                            `<a href="${game.iframe}" target="_blank">${game.iframe}</a>` : 
+                            '<span style="color: #999;">无</span>'
+                        }
+                    </td>
+                    <td class="iframe-status">
+                        <span class="status-badge ${game.iframe ? 'supported' : 'not-supported'}">
+                            ${game.iframe ? '✅ 支持' : '❌ 不支持'}
+                        </span>
+                    </td>
+                    <td>${game.category}</td>
+                    <td>${game.technology}</td>
+                    <td>${game.source}</td>
+                    <td>
+                        <div class="table-actions">
+                            <button class="table-btn copy" onclick="copyToClipboard('${game.iframe || game.url}')" title="复制链接">📋</button>
+                            <button class="table-btn open" onclick="openGame('${game.url}')" title="打开游戏">🎮</button>
+                        </div>
+                    </td>
+                `;
+                
+                tableBody.appendChild(row);
+            });
+        }
+
+        // 显示批量操作区域
+        function showBulkActions() {
+            document.getElementById('bulkActions').style.display = 'block';
+        }
+
+        // 切换游戏选择
+        function toggleGameSelection(gameId) {
+            const row = document.getElementById(`row-${gameId}`);
+            const card = document.querySelector(`[data-game-id="${gameId}"]`);
+            
+            if (selectedGames.has(gameId)) {
+                selectedGames.delete(gameId);
+                if (row) row.classList.remove('selected-row');
+                if (card) card.classList.remove('selected');
+            } else {
+                selectedGames.add(gameId);
+                if (row) row.classList.add('selected-row');
+                if (card) card.classList.add('selected');
+            }
+            
+            updateSelectedCount();
+            updateSelectAllCheckbox();
+        }
+
+        // 全选/取消全选
+        function toggleSelectAll() {
+            const selectAllCard = document.getElementById('selectAll');
+            const selectAllTable = document.getElementById('tableSelectAll');
+            const isChecked = selectAllCard.checked || selectAllTable.checked;
+            
+            selectAllCard.checked = isChecked;
+            selectAllTable.checked = isChecked;
+            
+            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            
+            if (isChecked) {
+                results.forEach(game => {
+                    selectedGames.add(game.id);
+                    const row = document.getElementById(`row-${game.id}`);
+                    const card = document.querySelector(`[data-game-id="${game.id}"]`);
+                    
+                    if (row) {
+                        row.classList.add('selected-row');
+                        const checkbox = row.querySelector('.row-checkbox');
+                        if (checkbox) checkbox.checked = true;
+                    }
+                    
+                    if (card) {
+                        card.classList.add('selected');
+                        const cardCheckbox = card.querySelector('.card-checkbox');
+                        if (cardCheckbox) cardCheckbox.checked = true;
+                    }
+                });
+            } else {
+                selectedGames.clear();
+                document.querySelectorAll('.selected-row').forEach(row => {
+                    row.classList.remove('selected-row');
+                });
+                document.querySelectorAll('.selected').forEach(card => {
+                    card.classList.remove('selected');
+                });
+                document.querySelectorAll('.row-checkbox, .card-checkbox').forEach(checkbox => {
+                    checkbox.checked = false;
+                });
+            }
+            
+            updateSelectedCount();
+        }
+
+        // 更新选中数量
+        function updateSelectedCount() {
+            const selectedCount = selectedGames.size;
+            const selectedIframeCount = getSelectedGames().filter(game => game.iframe).length;
+            
+            document.getElementById('selectedCount').textContent = selectedCount;
+            document.getElementById('selectedIframeCount').textContent = selectedIframeCount;
+        }
+
+        // 更新全选复选框状态
+        function updateSelectAllCheckbox() {
+            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            const totalCount = results.length;
+            const selectedCount = selectedGames.size;
+            
+            const selectAllCard = document.getElementById('selectAll');
+            const selectAllTable = document.getElementById('tableSelectAll');
+            
+            if (selectedCount === 0) {
+                selectAllCard.checked = false;
+                selectAllTable.checked = false;
+                selectAllCard.indeterminate = false;
+                selectAllTable.indeterminate = false;
+            } else if (selectedCount === totalCount) {
+                selectAllCard.checked = true;
+                selectAllTable.checked = true;
+                selectAllCard.indeterminate = false;
+                selectAllTable.indeterminate = false;
+            } else {
+                selectAllCard.checked = false;
+                selectAllTable.checked = false;
+                selectAllCard.indeterminate = true;
+                selectAllTable.indeterminate = true;
+            }
+        }
+
+        // 获取选中的游戏数据
+        function getSelectedGames() {
+            return crawlResults.filter(game => selectedGames.has(game.id));
+        }
+
+        // 导出为Excel格式
+        function exportSelectedAsExcel() {
+            const selectedData = getSelectedGames();
+            if (selectedData.length === 0) {
+                showMessage('请先选择要导出的游戏', 'warning');
+                return;
+            }
+            exportAsExcel(selectedData, 'selected_games');
+        }
+
+        // 导出全部为Excel
+        function exportAllAsExcel() {
+            if (crawlResults.length === 0) {
+                showMessage('没有可导出的数据', 'warning');
+                return;
+            }
+            exportAsExcel(crawlResults, 'all_games');
+        }
+
+        // Excel导出实现
+        function exportAsExcel(data, filename) {
+            const headers = ['游戏名称', '页面链接', 'iframe链接', '支持iframe', '类别', '技术', '来源', '尺寸', '描述'];
+            
+            let csvContent = headers.join(',') + '\n';
+            
+            data.forEach(game => {
+                const row = [
+                    `"${game.title}"`,
+                    `"${game.url}"`,
+                    `"${game.iframe || ''}"`,
+                    game.iframe ? '是' : '否',
+                    `"${game.category}"`,
+                    `"${game.technology}"`,
+                    `"${game.source}"`,
+                    `"${game.dimensions || ''}"`,
+                    `"${game.description || ''}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            downloadFile(blob, `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+            
+            showMessage(`已导出 ${data.length} 个游戏数据为Excel格式`, 'success');
+            addLog(`导出Excel: ${data.length} 个游戏数据`, 'success');
+        }
+
+        // 导出为CSV
+        function exportSelectedAsCSV() {
+            const selectedData = getSelectedGames();
+            if (selectedData.length === 0) {
+                showMessage('请先选择要导出的游戏', 'warning');
+                return;
+            }
+            exportAsCSV(selectedData, 'selected_games');
+        }
+
+        function exportAsCSV(data, filename) {
+            const headers = ['游戏名称', '页面链接', 'iframe链接', '支持iframe', '类别', '技术', '来源'];
+            let csvContent = headers.join(',') + '\n';
+            
+            data.forEach(game => {
+                const row = [
+                    `"${game.title}"`,
+                    `"${game.url}"`,
+                    `"${game.iframe || ''}"`,
+                    game.iframe ? '是' : '否',
+                    `"${game.category}"`,
+                    `"${game.technology}"`,
+                    `"${game.source}"`
+                ];
+                csvContent += row.join(',') + '\n';
+            });
+            
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csvContent], { type: 'text/csv;charset=utf-8;' });
+            downloadFile(blob, `${filename}_${new Date().toISOString().slice(0, 10)}.csv`);
+            
+            showMessage(`已导出 ${data.length} 个游戏数据为CSV格式`, 'success');
+            addLog(`导出CSV: ${data.length} 个游戏数据`, 'success');
+        }
+
+        // 导出为JSON
+        function exportSelectedAsJSON() {
+            const selectedData = getSelectedGames();
+            if (selectedData.length === 0) {
+                showMessage('请先选择要导出的游戏', 'warning');
+                return;
+            }
+            
+            const exportData = selectedData.map(game => ({
+                title: game.title,
+                url: game.url,
+                iframe: game.iframe,
+                category: game.category,
+                technology: game.technology,
+                source: game.source,
+                dimensions: game.dimensions,
+                description: game.description,
+                tags: game.tags
+            }));
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], { type: 'application/json' });
+            downloadFile(dataBlob, `selected_games_${new Date().toISOString().slice(0, 10)}.json`);
+            
+            showMessage(`已导出 ${selectedData.length} 个游戏数据为JSON格式`, 'success');
+            addLog(`导出JSON: ${selectedData.length} 个游戏数据`, 'success');
+        }
+
+        // 复制选中的URL
+        function copySelectedUrls() {
+            const selectedData = getSelectedGames();
+            if (selectedData.length === 0) {
+                showMessage('请先选择要复制的游戏', 'warning');
+                return;
+            }
+            
+            const urls = selectedData.map(game => game.iframe || game.url).join('\n');
+            copyToClipboard(urls);
+            showMessage(`已复制 ${selectedData.length} 个游戏链接`, 'success');
+            addLog(`复制链接: ${selectedData.length} 个游戏链接`, 'success');
+        }
+
+        // 生成批量嵌入代码
+        function generateBatchEmbedCode() {
+            const selectedData = getSelectedGames();
+            const iframeGames = selectedData.filter(game => game.iframe);
+            
+            if (iframeGames.length === 0) {
+                showMessage('选中的游戏中没有支持iframe的游戏', 'warning');
+                return;
+            }
+            
+            let embedCode = '<!DOCTYPE html>\n<html lang="zh-CN">\n<head>\n';
+            embedCode += '    <meta charset="UTF-8">\n';
+            embedCode += '    <meta name="viewport" content="width=device-width, initial-scale=1.0">\n';
+            embedCode += '    <title>批量游戏嵌入页面</title>\n';
+            embedCode += '    <style>\n';
+            embedCode += '        body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f5f5f5; }\n';
+            embedCode += '        .games-container { max-width: 1200px; margin: 0 auto; }\n';
+            embedCode += '        .game-embed { margin-bottom: 40px; background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }\n';
+            embedCode += '        .game-embed h3 { margin-bottom: 15px; color: #333; text-align: center; }\n';
+            embedCode += '        .game-embed iframe { width: 100%; max-width: 800px; height: 600px; border: none; border-radius: 8px; display: block; margin: 0 auto; }\n';
+            embedCode += '        .game-info { text-align: center; margin-top: 10px; color: #666; font-size: 14px; }\n';
+            embedCode += '    </style>\n';
+            embedCode += '</head>\n<body>\n';
+            embedCode += '    <div class="games-container">\n';
+            embedCode += '        <h1 style="text-align: center; color: #333; margin-bottom: 40px;">游戏集合页面</h1>\n';
+            
+            iframeGames.forEach((game, index) => {
+                embedCode += `        <div class="game-embed" id="game-${game.id}">\n`;
+                embedCode += `            <h3>${game.title}</h3>\n`;
+                embedCode += `            <iframe src="${game.iframe}" allowfullscreen></iframe>\n`;
+                embedCode += `            <div class="game-info">类别: ${game.category} | 技术: ${game.technology} | 来源: ${game.source}</div>\n`;
+                embedCode += `        </div>\n`;
+            });
+            
+            embedCode += '    </div>\n';
+            embedCode += '</body>\n</html>';
+            
+            copyToClipboard(embedCode);
+            showMessage(`已生成并复制 ${iframeGames.length} 个游戏的完整HTML页面代码`, 'success');
+            addLog(`生成嵌入代码: ${iframeGames.length} 个游戏的HTML页面`, 'success');
+        }
+
+        // 下载文件的通用函数
+        function downloadFile(blob, filename) {
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.href = url;
+            link.download = filename;
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
         }
 
         // 更新UI状态
@@ -1048,12 +1709,10 @@
             document.getElementById('gamesFound').textContent = crawlStats.gamesFound;
             document.getElementById('iframesFound').textContent = crawlStats.iframesFound;
             
-            // 计算速度和剩余时间
-            const elapsed = (Date.now() - crawlStats.startTime) / 1000 / 60; // 分钟
+            const elapsed = (Date.now() - crawlStats.startTime) / 1000 / 60;
             const speed = elapsed > 0 ? Math.round(crawlStats.pagesProcessed / elapsed) : 0;
             document.getElementById('crawlSpeed').textContent = speed;
             
-            // 成功率
             const successRate = crawlStats.totalRequests > 0 ? 
                 Math.round((crawlStats.successfulRequests / crawlStats.totalRequests) * 100) : 0;
             document.getElementById('successRate').textContent = successRate + '%';
@@ -1082,11 +1741,15 @@
         // 清空结果
         function clearResults() {
             crawlResults = [];
+            filteredResults = [];
+            selectedGames.clear();
+            
             document.getElementById('resultsContainer').innerHTML = 
                 '<p style="text-align: center; color: #666; padding: 40px;">选择游戏站点并开始爬取来发现可嵌入的游戏链接</p>';
+            document.getElementById('tableBody').innerHTML = '';
             document.getElementById('totalGamesCount').textContent = '0';
+            document.getElementById('bulkActions').style.display = 'none';
             
-            // 重置统计
             crawlStats = {
                 pagesProcessed: 0,
                 gamesFound: 0,
@@ -1096,14 +1759,26 @@
                 startTime: 0
             };
             updateStats();
+            updateSelectedCount();
             
             addLog('结果已清空', 'info');
         }
 
         // 显示结果
         function displayResults() {
-            const container = document.getElementById('resultsContainer');
+            filteredResults = crawlResults;
             document.getElementById('totalGamesCount').textContent = crawlResults.length;
+            
+            if (currentView === 'card') {
+                displayCardView();
+            } else {
+                renderTableView();
+            }
+        }
+
+        // 显示卡片视图
+        function displayCardView() {
+            const container = document.getElementById('resultsContainer');
             
             if (crawlResults.length === 0) {
                 container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">未发现任何游戏链接</p>';
@@ -1113,7 +1788,8 @@
             container.innerHTML = '<div class="game-grid"></div>';
             const gameGrid = container.querySelector('.game-grid');
             
-            crawlResults.forEach(game => {
+            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            results.forEach(game => {
                 const gameCard = createGameCard(game);
                 gameGrid.appendChild(gameCard);
             });
@@ -1123,8 +1799,17 @@
         function createGameCard(game) {
             const card = document.createElement('div');
             card.className = 'game-card';
+            card.setAttribute('data-game-id', game.id);
+            
+            if (selectedGames.has(game.id)) {
+                card.classList.add('selected');
+            }
             
             card.innerHTML = `
+                <input type="checkbox" class="card-checkbox" 
+                       ${selectedGames.has(game.id) ? 'checked' : ''}
+                       onchange="toggleGameSelection('${game.id}')">
+                
                 <div class="game-header">
                     <div>
                         <div class="game-title">${game.title}</div>
@@ -1138,7 +1823,7 @@
                     <div>类别: ${game.category}</div>
                     <div>技术: ${game.technology}</div>
                     <div>尺寸: ${game.dimensions}</div>
-                    <div>支持iframe: ${game.iframe ? '是' : '否'}</div>
+                    <div>支持iframe: ${game.iframe ? '✅ 是' : '❌ 否'}</div>
                 </div>
                 
                 ${game.iframe && document.getElementById('enablePreview')?.checked ? 
@@ -1173,70 +1858,38 @@
         function filterResults() {
             const categoryFilter = document.getElementById('categoryFilter').value;
             const technologyFilter = document.getElementById('technologyFilter').value;
+            const iframeFilter = document.getElementById('iframeFilter').value;
             
-            const filteredResults = crawlResults.filter(game => {
+            filteredResults = crawlResults.filter(game => {
                 const categoryMatch = !categoryFilter || game.category === categoryFilter;
                 const technologyMatch = !technologyFilter || game.technology === technologyFilter;
-                return categoryMatch && technologyMatch;
+                let iframeMatch = true;
+                
+                if (iframeFilter === 'iframe') {
+                    iframeMatch = !!game.iframe;
+                } else if (iframeFilter === 'no-iframe') {
+                    iframeMatch = !game.iframe;
+                }
+                
+                return categoryMatch && technologyMatch && iframeMatch;
             });
             
-            // 重新显示过滤后的结果
-            const container = document.getElementById('resultsContainer');
-            container.innerHTML = '<div class="game-grid"></div>';
-            const gameGrid = container.querySelector('.game-grid');
-            
-            filteredResults.forEach(game => {
-                const gameCard = createGameCard(game);
-                gameGrid.appendChild(gameCard);
-            });
+            if (currentView === 'card') {
+                displayCardView();
+            } else {
+                renderTableView();
+            }
             
             document.getElementById('totalGamesCount').textContent = filteredResults.length;
-        }
-
-        // 导出结果
-        function exportResults() {
-            if (crawlResults.length === 0) {
-                showMessage('没有可导出的结果', 'warning');
-                return;
-            }
             
-            const exportData = crawlResults.map(game => ({
-                title: game.title,
-                url: game.url,
-                iframe: game.iframe,
-                category: game.category,
-                technology: game.technology,
-                source: game.source
-            }));
-            
-            const dataStr = JSON.stringify(exportData, null, 2);
-            const dataBlob = new Blob([dataStr], {type: 'application/json'});
-            
-            const link = document.createElement('a');
-            link.href = URL.createObjectURL(dataBlob);
-            link.download = `games_${new Date().toISOString().slice(0, 10)}.json`;
-            link.click();
-            
-            showMessage('游戏列表已导出', 'success');
-        }
-
-        // 生成嵌入代码
-        function generateEmbedCode() {
-            const iframeGames = crawlResults.filter(game => game.iframe);
-            
-            if (iframeGames.length === 0) {
-                showMessage('没有支持iframe的游戏', 'warning');
-                return;
-            }
-            
-            let embedCode = '<!-- 游戏嵌入代码 -->\n';
-            iframeGames.forEach(game => {
-                embedCode += `<!-- ${game.title} -->\n`;
-                embedCode += `<iframe src="${game.iframe}" width="800" height="600" frameborder="0" allowfullscreen></iframe>\n\n`;
+            const filteredIds = new Set(filteredResults.map(game => game.id));
+            selectedGames.forEach(id => {
+                if (!filteredIds.has(id)) {
+                    selectedGames.delete(id);
+                }
             });
-            
-            copyToClipboard(embedCode);
-            showMessage(`已复制 ${iframeGames.length} 个游戏的嵌入代码`, 'success');
+            updateSelectedCount();
+            updateSelectAllCheckbox();
         }
 
         // 复制到剪贴板
@@ -1244,7 +1897,6 @@
             navigator.clipboard.writeText(text).then(function() {
                 showMessage('已复制到剪贴板', 'success');
             }).catch(function() {
-                // 兼容性处理
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
                 document.body.appendChild(textArea);
@@ -1283,7 +1935,6 @@
             logContainer.appendChild(logEntry);
             logContainer.scrollTop = logContainer.scrollHeight;
             
-            // 限制日志数量
             if (logContainer.children.length > 100) {
                 logContainer.removeChild(logContainer.firstChild);
             }
@@ -1310,11 +1961,5 @@
 
         // 页面加载完成后的初始化
         document.addEventListener('DOMContentLoaded', function() {
-            addLog('游戏爬虫工具已就绪', 'info');
-            
-            // 设置默认值
-            document.getElementById('gameSelectors').placeholder = siteConfigs.default.gameSelectors;
-        });
-    </script>
-</body>
-</html>
+            addLog('游戏爬虫工具已就绪 - 增强版', 'info');
+            addLog('新增功能: 表格视图、批量导出、选
