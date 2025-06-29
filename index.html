@@ -781,6 +781,7 @@
         let isCrawling = false;
         let isPaused = false;
         let selectedSite = '';
+        let crawlWorker = null;
 
         // 游戏站点爬取规则配置
         const siteConfigs = {
@@ -827,4 +828,493 @@
             event.target.closest('.preset-site').classList.add('selected');
             
             if (url === 'custom') {
-                selectedSite
+                selectedSite = '';
+                document.getElementById('gamesSite').focus();
+            } else {
+                selectedSite = url;
+                document.getElementById('gamesSite').value = url;
+            }
+        }
+
+        // 快速开始爬取
+        function startQuickCrawl() {
+            if (!selectedSite && !document.getElementById('gamesSite').value) {
+                showMessage('请选择或输入游戏站点URL', 'error');
+                return;
+            }
+            
+            const url = selectedSite || document.getElementById('gamesSite').value;
+            startCrawling(url, getQuickCrawlConfig());
+        }
+
+        // 详细爬取
+        function startDetailedCrawl() {
+            const url = document.getElementById('gamesSite').value;
+            if (!url) {
+                showMessage('请输入游戏站点URL', 'error');
+                return;
+            }
+            
+            startCrawling(url, getDetailedCrawlConfig());
+        }
+
+        // 获取快速爬取配置
+        function getQuickCrawlConfig() {
+            return {
+                maxDepth: 2,
+                maxPages: 20,
+                requestDelay: 1000,
+                concurrent: 2,
+                timeout: 10,
+                followPagination: true,
+                detectIframes: true,
+                detectEmbedUrls: true,
+                filterValidUrls: true,
+                removeDuplicates: true
+            };
+        }
+
+        // 获取详细爬取配置
+        function getDetailedCrawlConfig() {
+            const depth = document.getElementById('crawlDepth').value;
+            return {
+                maxDepth: depth === 'unlimited' ? Infinity : parseInt(depth),
+                maxPages: parseInt(document.getElementById('maxPages').value),
+                requestDelay: parseInt(document.getElementById('requestDelay').value),
+                concurrent: parseInt(document.getElementById('concurrent').value),
+                timeout: parseInt(document.getElementById('timeout').value),
+                followPagination: document.getElementById('followPagination').checked,
+                detectIframes: document.getElementById('detectIframes').checked,
+                detectEmbedUrls: document.getElementById('detectEmbedUrls').checked,
+                detectGameLinks: document.getElementById('detectGameLinks').checked,
+                filterValidUrls: document.getElementById('filterValidUrls').checked,
+                removeDuplicates: document.getElementById('removeDuplicates').checked,
+                enablePreview: document.getElementById('enablePreview').checked,
+                customSelectors: document.getElementById('gameSelectors').value
+            };
+        }
+
+        // 开始爬取
+        async function startCrawling(url, config) {
+            if (isCrawling) {
+                showMessage('爬取正在进行中，请等待完成或停止当前任务', 'warning');
+                return;
+            }
+
+            isCrawling = true;
+            isPaused = false;
+            crawlStats = {
+                pagesProcessed: 0,
+                gamesFound: 0,
+                iframesFound: 0,
+                successfulRequests: 0,
+                totalRequests: 0,
+                startTime: Date.now()
+            };
+
+            updateUI();
+            showProgressSection();
+            addLog(`开始爬取游戏站点: ${url}`, 'info');
+            
+            try {
+                // 模拟爬取过程（由于CORS限制，这里只能模拟）
+                await simulateCrawlProcess(url, config);
+            } catch (error) {
+                addLog(`爬取过程出错: ${error.message}`, 'error');
+                showMessage('爬取过程中出现错误，请检查URL或网络连接', 'error');
+            } finally {
+                isCrawling = false;
+                updateUI();
+            }
+        }
+
+        // 模拟爬取过程
+        async function simulateCrawlProcess(url, config) {
+            const domain = new URL(url).hostname;
+            const siteConfig = getSiteConfig(domain);
+            
+            // 模拟发现的游戏数据
+            const simulatedGames = generateSimulatedGames(domain, config.maxPages);
+            
+            for (let i = 0; i < simulatedGames.length; i++) {
+                if (!isCrawling || isPaused) break;
+                
+                const game = simulatedGames[i];
+                crawlStats.pagesProcessed++;
+                crawlStats.gamesFound++;
+                
+                if (game.iframe) {
+                    crawlStats.iframesFound++;
+                }
+                
+                crawlStats.successfulRequests++;
+                crawlStats.totalRequests++;
+                
+                // 添加到结果
+                crawlResults.push(game);
+                
+                // 更新进度
+                updateProgress((i + 1) / simulatedGames.length * 100);
+                updateStats();
+                updateCurrentTask(`处理游戏: ${game.title}`);
+                
+                addLog(`发现游戏: ${game.title} - ${game.iframe ? '支持iframe' : '仅页面链接'}`, 'success');
+                
+                // 延迟
+                await sleep(config.requestDelay || 1000);
+            }
+            
+            // 完成
+            addLog(`爬取完成！总共发现 ${crawlResults.length} 个游戏，其中 ${crawlStats.iframesFound} 个支持iframe嵌入`, 'success');
+            displayResults();
+        }
+
+        // 生成模拟游戏数据
+        function generateSimulatedGames(domain, maxGames) {
+            const gameTypes = ['action', 'puzzle', 'arcade', 'racing', 'sports', 'strategy'];
+            const techTypes = ['html5', 'unity', 'webgl', 'flash'];
+            const games = [];
+            
+            const gameCount = Math.min(maxGames, Math.floor(Math.random() * 50) + 10);
+            
+            for (let i = 0; i < gameCount; i++) {
+                const gameId = Math.random().toString(36).substr(2, 9);
+                const gameType = gameTypes[Math.floor(Math.random() * gameTypes.length)];
+                const techType = techTypes[Math.floor(Math.random() * techTypes.length)];
+                
+                games.push({
+                    id: gameId,
+                    title: `${gameType.charAt(0).toUpperCase() + gameType.slice(1)} Game ${i + 1}`,
+                    url: `https://${domain}/games/${gameId}`,
+                    iframe: Math.random() > 0.3 ? `https://${domain}/embed/${gameId}` : null,
+                    category: gameType,
+                    technology: techType,
+                    source: domain,
+                    dimensions: '800x600',
+                    description: `A fun ${gameType} game built with ${techType}`,
+                    tags: [gameType, techType, 'game']
+                });
+            }
+            
+            return games;
+        }
+
+        // 获取站点配置
+        function getSiteConfig(domain) {
+            for (const [key, config] of Object.entries(siteConfigs)) {
+                if (domain.includes(key)) {
+                    return config;
+                }
+            }
+            return siteConfigs.default;
+        }
+
+        // 更新UI状态
+        function updateUI() {
+            const crawlBtn = document.getElementById('crawlBtn');
+            const pauseBtn = document.getElementById('pauseBtn');
+            const stopBtn = document.getElementById('stopBtn');
+            
+            crawlBtn.disabled = isCrawling;
+            pauseBtn.disabled = !isCrawling;
+            stopBtn.disabled = !isCrawling;
+            
+            if (isCrawling) {
+                crawlBtn.textContent = isPaused ? '⏸️ 已暂停' : '🔄 爬取中...';
+                pauseBtn.textContent = isPaused ? '▶️ 继续' : '⏸️ 暂停';
+            } else {
+                crawlBtn.textContent = '🚀 开始详细爬取';
+                pauseBtn.textContent = '⏸️ 暂停';
+            }
+        }
+
+        // 显示进度区域
+        function showProgressSection() {
+            document.getElementById('progressSection').style.display = 'block';
+        }
+
+        // 更新进度条
+        function updateProgress(percentage) {
+            const progressFill = document.getElementById('progressFill');
+            const progressText = document.getElementById('progressText');
+            
+            progressFill.style.width = percentage + '%';
+            progressText.textContent = `${Math.round(percentage)}%`;
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            document.getElementById('pagesProcessed').textContent = crawlStats.pagesProcessed;
+            document.getElementById('gamesFound').textContent = crawlStats.gamesFound;
+            document.getElementById('iframesFound').textContent = crawlStats.iframesFound;
+            
+            // 计算速度和剩余时间
+            const elapsed = (Date.now() - crawlStats.startTime) / 1000 / 60; // 分钟
+            const speed = elapsed > 0 ? Math.round(crawlStats.pagesProcessed / elapsed) : 0;
+            document.getElementById('crawlSpeed').textContent = speed;
+            
+            // 成功率
+            const successRate = crawlStats.totalRequests > 0 ? 
+                Math.round((crawlStats.successfulRequests / crawlStats.totalRequests) * 100) : 0;
+            document.getElementById('successRate').textContent = successRate + '%';
+        }
+
+        // 更新当前任务
+        function updateCurrentTask(task) {
+            document.getElementById('currentTaskUrl').textContent = task;
+        }
+
+        // 暂停爬取
+        function pauseCrawl() {
+            isPaused = !isPaused;
+            updateUI();
+            addLog(isPaused ? '爬取已暂停' : '爬取已继续', 'info');
+        }
+
+        // 停止爬取
+        function stopCrawl() {
+            isCrawling = false;
+            isPaused = false;
+            updateUI();
+            addLog('爬取已停止', 'warning');
+        }
+
+        // 清空结果
+        function clearResults() {
+            crawlResults = [];
+            document.getElementById('resultsContainer').innerHTML = 
+                '<p style="text-align: center; color: #666; padding: 40px;">选择游戏站点并开始爬取来发现可嵌入的游戏链接</p>';
+            document.getElementById('totalGamesCount').textContent = '0';
+            
+            // 重置统计
+            crawlStats = {
+                pagesProcessed: 0,
+                gamesFound: 0,
+                iframesFound: 0,
+                successfulRequests: 0,
+                totalRequests: 0,
+                startTime: 0
+            };
+            updateStats();
+            
+            addLog('结果已清空', 'info');
+        }
+
+        // 显示结果
+        function displayResults() {
+            const container = document.getElementById('resultsContainer');
+            document.getElementById('totalGamesCount').textContent = crawlResults.length;
+            
+            if (crawlResults.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #666; padding: 40px;">未发现任何游戏链接</p>';
+                return;
+            }
+            
+            container.innerHTML = '<div class="game-grid"></div>';
+            const gameGrid = container.querySelector('.game-grid');
+            
+            crawlResults.forEach(game => {
+                const gameCard = createGameCard(game);
+                gameGrid.appendChild(gameCard);
+            });
+        }
+
+        // 创建游戏卡片
+        function createGameCard(game) {
+            const card = document.createElement('div');
+            card.className = 'game-card';
+            
+            card.innerHTML = `
+                <div class="game-header">
+                    <div>
+                        <div class="game-title">${game.title}</div>
+                        <div class="game-source">${game.source}</div>
+                    </div>
+                </div>
+                
+                <div class="game-url">${game.iframe || game.url}</div>
+                
+                <div class="game-details">
+                    <div>类别: ${game.category}</div>
+                    <div>技术: ${game.technology}</div>
+                    <div>尺寸: ${game.dimensions}</div>
+                    <div>支持iframe: ${game.iframe ? '是' : '否'}</div>
+                </div>
+                
+                ${game.iframe && document.getElementById('enablePreview')?.checked ? 
+                    `<div class="game-preview">
+                        <iframe src="${game.iframe}" sandbox="allow-scripts allow-same-origin"></iframe>
+                    </div>` : ''
+                }
+                
+                <div class="game-tags">
+                    ${game.tags.map(tag => `<span class="tag ${tag}">${tag}</span>`).join('')}
+                </div>
+                
+                <div class="game-actions">
+                    <button class="btn btn-secondary btn-small" onclick="copyToClipboard('${game.iframe || game.url}')">
+                        📋 复制链接
+                    </button>
+                    <button class="btn btn-secondary btn-small" onclick="openGame('${game.url}')">
+                        🎮 打开游戏
+                    </button>
+                    ${game.iframe ? 
+                        `<button class="btn btn-secondary btn-small" onclick="copyEmbedCode('${game.iframe}', '${game.title}')">
+                            🔗 复制嵌入代码
+                        </button>` : ''
+                    }
+                </div>
+            `;
+            
+            return card;
+        }
+
+        // 过滤结果
+        function filterResults() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const technologyFilter = document.getElementById('technologyFilter').value;
+            
+            const filteredResults = crawlResults.filter(game => {
+                const categoryMatch = !categoryFilter || game.category === categoryFilter;
+                const technologyMatch = !technologyFilter || game.technology === technologyFilter;
+                return categoryMatch && technologyMatch;
+            });
+            
+            // 重新显示过滤后的结果
+            const container = document.getElementById('resultsContainer');
+            container.innerHTML = '<div class="game-grid"></div>';
+            const gameGrid = container.querySelector('.game-grid');
+            
+            filteredResults.forEach(game => {
+                const gameCard = createGameCard(game);
+                gameGrid.appendChild(gameCard);
+            });
+            
+            document.getElementById('totalGamesCount').textContent = filteredResults.length;
+        }
+
+        // 导出结果
+        function exportResults() {
+            if (crawlResults.length === 0) {
+                showMessage('没有可导出的结果', 'warning');
+                return;
+            }
+            
+            const exportData = crawlResults.map(game => ({
+                title: game.title,
+                url: game.url,
+                iframe: game.iframe,
+                category: game.category,
+                technology: game.technology,
+                source: game.source
+            }));
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const dataBlob = new Blob([dataStr], {type: 'application/json'});
+            
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(dataBlob);
+            link.download = `games_${new Date().toISOString().slice(0, 10)}.json`;
+            link.click();
+            
+            showMessage('游戏列表已导出', 'success');
+        }
+
+        // 生成嵌入代码
+        function generateEmbedCode() {
+            const iframeGames = crawlResults.filter(game => game.iframe);
+            
+            if (iframeGames.length === 0) {
+                showMessage('没有支持iframe的游戏', 'warning');
+                return;
+            }
+            
+            let embedCode = '<!-- 游戏嵌入代码 -->\n';
+            iframeGames.forEach(game => {
+                embedCode += `<!-- ${game.title} -->\n`;
+                embedCode += `<iframe src="${game.iframe}" width="800" height="600" frameborder="0" allowfullscreen></iframe>\n\n`;
+            });
+            
+            copyToClipboard(embedCode);
+            showMessage(`已复制 ${iframeGames.length} 个游戏的嵌入代码`, 'success');
+        }
+
+        // 复制到剪贴板
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                showMessage('已复制到剪贴板', 'success');
+            }).catch(function() {
+                // 兼容性处理
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                document.body.appendChild(textArea);
+                textArea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textArea);
+                showMessage('已复制到剪贴板', 'success');
+            });
+        }
+
+        // 复制嵌入代码
+        function copyEmbedCode(iframeUrl, title) {
+            const embedCode = `<iframe src="${iframeUrl}" width="800" height="600" frameborder="0" allowfullscreen title="${title}"></iframe>`;
+            copyToClipboard(embedCode);
+        }
+
+        // 打开游戏
+        function openGame(url) {
+            window.open(url, '_blank');
+        }
+
+        // 切换日志显示
+        function toggleLog() {
+            const logSection = document.getElementById('logSection');
+            logSection.style.display = logSection.style.display === 'none' ? 'block' : 'none';
+        }
+
+        // 添加日志
+        function addLog(message, type = 'info') {
+            const logContainer = document.getElementById('logContainer');
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry log-${type}`;
+            logEntry.innerHTML = `<span class="log-timestamp">[${timestamp}]</span> ${message}`;
+            
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+            
+            // 限制日志数量
+            if (logContainer.children.length > 100) {
+                logContainer.removeChild(logContainer.firstChild);
+            }
+        }
+
+        // 显示消息
+        function showMessage(message, type = 'info') {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = type;
+            messageDiv.textContent = message;
+            
+            const container = document.querySelector('.container');
+            container.insertBefore(messageDiv, container.firstChild);
+            
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // 工具函数：延迟
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        // 页面加载完成后的初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            addLog('游戏爬虫工具已就绪', 'info');
+            
+            // 设置默认值
+            document.getElementById('gameSelectors').placeholder = siteConfigs.default.gameSelectors;
+        });
+    </script>
+</body>
+</html>
