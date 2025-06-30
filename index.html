@@ -733,6 +733,22 @@
             border-left: 4px solid #4caf50;
         }
 
+        /* 新增样式：过滤状态提示 */
+        .filter-status {
+            background: #e3f2fd;
+            color: #1976d2;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #1976d2;
+            font-size: 14px;
+            display: none;
+        }
+
+        .filter-status.active {
+            display: block;
+        }
+
         @media (max-width: 768px) {
             .game-grid {
                 grid-template-columns: 1fr;
@@ -1035,7 +1051,16 @@
                     <button class="btn btn-secondary btn-small" onclick="exportAllAsExcel()">
                         📊 导出全部Excel
                     </button>
+                    <button class="btn btn-secondary btn-small" onclick="exportCurrentViewAsExcel()">
+                        📊 导出当前视图Excel
+                    </button>
                 </div>
+            </div>
+
+            <!-- 过滤状态提示 -->
+            <div class="filter-status" id="filterStatus">
+                <span id="filterStatusText"></span>
+                <button class="btn btn-small" onclick="clearFilters()" style="margin-left: 10px; padding: 4px 8px;">清除过滤</button>
             </div>
 
             <!-- 卡片视图 -->
@@ -1333,7 +1358,7 @@
             const tableBody = document.getElementById('tableBody');
             tableBody.innerHTML = '';
             
-            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            const results = getCurrentViewData();
             
             results.forEach((game, index) => {
                 const row = document.createElement('tr');
@@ -1380,6 +1405,11 @@
             });
         }
 
+        // 获取当前视图的数据
+        function getCurrentViewData() {
+            return filteredResults.length > 0 ? filteredResults : crawlResults;
+        }
+
         // 显示批量操作区域
         function showBulkActions() {
             document.getElementById('bulkActions').style.display = 'block';
@@ -1413,7 +1443,7 @@
             selectAllCard.checked = isChecked;
             selectAllTable.checked = isChecked;
             
-            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            const results = getCurrentViewData();
             
             if (isChecked) {
                 results.forEach(game => {
@@ -1460,19 +1490,19 @@
 
         // 更新全选复选框状态
         function updateSelectAllCheckbox() {
-            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            const results = getCurrentViewData();
             const totalCount = results.length;
-            const selectedCount = selectedGames.size;
+            const visibleSelectedCount = results.filter(game => selectedGames.has(game.id)).length;
             
             const selectAllCard = document.getElementById('selectAll');
             const selectAllTable = document.getElementById('tableSelectAll');
             
-            if (selectedCount === 0) {
+            if (visibleSelectedCount === 0) {
                 selectAllCard.checked = false;
                 selectAllTable.checked = false;
                 selectAllCard.indeterminate = false;
                 selectAllTable.indeterminate = false;
-            } else if (selectedCount === totalCount) {
+            } else if (visibleSelectedCount === totalCount) {
                 selectAllCard.checked = true;
                 selectAllTable.checked = true;
                 selectAllCard.indeterminate = false;
@@ -1507,6 +1537,43 @@
                 return;
             }
             exportAsExcel(crawlResults, 'all_games');
+        }
+
+        // 导出当前视图为Excel
+        function exportCurrentViewAsExcel() {
+            const currentData = getCurrentViewData();
+            if (currentData.length === 0) {
+                showMessage('当前视图没有可导出的数据', 'warning');
+                return;
+            }
+            
+            let filename = 'current_view_games';
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const technologyFilter = document.getElementById('technologyFilter').value;
+            const iframeFilter = document.getElementById('iframeFilter').value;
+            
+            if (categoryFilter || technologyFilter || iframeFilter) {
+                filename = 'filtered_games';
+            }
+            
+            exportAsExcel(currentData, filename);
+            
+            addLog(`导出当前视图: ${currentData.length} 个游戏 (${getFilterDescription()})`, 'success');
+        }
+
+        // 获取过滤描述
+        function getFilterDescription() {
+            const filters = [];
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const technologyFilter = document.getElementById('technologyFilter').value;
+            const iframeFilter = document.getElementById('iframeFilter').value;
+            
+            if (categoryFilter) filters.push(`类别: ${categoryFilter}`);
+            if (technologyFilter) filters.push(`技术: ${technologyFilter}`);
+            if (iframeFilter === 'iframe') filters.push('仅支持iframe');
+            if (iframeFilter === 'no-iframe') filters.push('不支持iframe');
+            
+            return filters.length > 0 ? filters.join(', ') : '无过滤';
         }
 
         // Excel导出实现
@@ -1749,6 +1816,12 @@
             document.getElementById('tableBody').innerHTML = '';
             document.getElementById('totalGamesCount').textContent = '0';
             document.getElementById('bulkActions').style.display = 'none';
+            document.getElementById('filterStatus').classList.remove('active');
+            
+            // 重置过滤器
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('technologyFilter').value = '';
+            document.getElementById('iframeFilter').value = '';
             
             crawlStats = {
                 pagesProcessed: 0,
@@ -1788,7 +1861,7 @@
             container.innerHTML = '<div class="game-grid"></div>';
             const gameGrid = container.querySelector('.game-grid');
             
-            const results = filteredResults.length > 0 ? filteredResults : crawlResults;
+            const results = getCurrentViewData();
             results.forEach(game => {
                 const gameCard = createGameCard(game);
                 gameGrid.appendChild(gameCard);
@@ -1874,6 +1947,9 @@
                 return categoryMatch && technologyMatch && iframeMatch;
             });
             
+            // 更新过滤状态提示
+            updateFilterStatus();
+            
             if (currentView === 'card') {
                 displayCardView();
             } else {
@@ -1882,14 +1958,64 @@
             
             document.getElementById('totalGamesCount').textContent = filteredResults.length;
             
+            // 清除不在过滤结果中的选择
             const filteredIds = new Set(filteredResults.map(game => game.id));
+            const selectedToRemove = [];
             selectedGames.forEach(id => {
                 if (!filteredIds.has(id)) {
-                    selectedGames.delete(id);
+                    selectedToRemove.push(id);
                 }
             });
+            selectedToRemove.forEach(id => selectedGames.delete(id));
+            
             updateSelectedCount();
             updateSelectAllCheckbox();
+            
+            addLog(`应用过滤器: 显示 ${filteredResults.length}/${crawlResults.length} 个游戏`, 'info');
+        }
+
+        // 更新过滤状态提示
+        function updateFilterStatus() {
+            const categoryFilter = document.getElementById('categoryFilter').value;
+            const technologyFilter = document.getElementById('technologyFilter').value;
+            const iframeFilter = document.getElementById('iframeFilter').value;
+            
+            const filterStatus = document.getElementById('filterStatus');
+            const filterStatusText = document.getElementById('filterStatusText');
+            
+            const activeFilters = [];
+            if (categoryFilter) activeFilters.push(`类别: ${categoryFilter}`);
+            if (technologyFilter) activeFilters.push(`技术: ${technologyFilter}`);
+            if (iframeFilter === 'iframe') activeFilters.push('仅支持iframe');
+            if (iframeFilter === 'no-iframe') activeFilters.push('不支持iframe');
+            
+            if (activeFilters.length > 0) {
+                filterStatus.classList.add('active');
+                filterStatusText.textContent = `当前过滤条件: ${activeFilters.join(', ')} | 显示 ${filteredResults.length}/${crawlResults.length} 个游戏`;
+            } else {
+                filterStatus.classList.remove('active');
+            }
+        }
+
+        // 清除过滤器
+        function clearFilters() {
+            document.getElementById('categoryFilter').value = '';
+            document.getElementById('technologyFilter').value = '';
+            document.getElementById('iframeFilter').value = '';
+            
+            filteredResults = [];
+            
+            document.getElementById('filterStatus').classList.remove('active');
+            document.getElementById('totalGamesCount').textContent = crawlResults.length;
+            
+            if (currentView === 'card') {
+                displayCardView();
+            } else {
+                renderTableView();
+            }
+            
+            updateSelectAllCheckbox();
+            addLog('已清除所有过滤条件', 'info');
         }
 
         // 复制到剪贴板
@@ -1962,7 +2088,7 @@
         // 页面加载完成后的初始化
         document.addEventListener('DOMContentLoaded', function() {
             addLog('游戏爬虫工具已就绪 - 增强版', 'info');
-            addLog('新增功能: 表格视图、批量导出、选择操作', 'info');
+            addLog('新增功能: 表格视图、批量导出、选择操作、精确过滤', 'info');
             
             document.getElementById('gameSelectors').placeholder = siteConfigs.default.gameSelectors;
         });
